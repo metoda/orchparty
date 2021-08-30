@@ -52,7 +52,7 @@ module Orchparty
       end
 
       def upgrade(helm)
-        puts system(upgrade_cmd(helm))
+        puts system(install_cmd(helm))
       end
 
       def install(helm)
@@ -65,12 +65,8 @@ module Orchparty
         helm[:values]
       end
 
-      def upgrade_cmd(helm, fix_file_path = nil)
-        "helm upgrade --namespace #{namespace} --kube-context #{cluster_name} --version #{helm.version} #{helm.name} #{helm.chart} #{template(value_path(helm), helm, fix_file_path: fix_file_path)}"
-      end
-
       def install_cmd(helm, fix_file_path = nil)
-        "helm install --create-namespace --namespace #{namespace} --kube-context #{cluster_name} --version #{helm.version} #{helm.name} #{helm.chart} #{template(value_path(helm), helm, fix_file_path: fix_file_path)}"
+        "helm upgrade --install --create-namespace --namespace #{namespace} --kube-context #{cluster_name} --version #{helm.version} #{helm.name} #{helm.chart} #{template(value_path(helm), helm, fix_file_path: fix_file_path)}"
       end
     end
 
