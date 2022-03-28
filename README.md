@@ -460,9 +460,15 @@ You can also run `bin/console` for an interactive prompt that will allow you to 
 To install this gem onto your local machine, run `bundle exec rake install`.
 
 To release a new version:
-1. update the version number in `version.rb`
-2. run `bundle exec rake release` which will create a git tag for the version
-3. push git commits and tags and additionally push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+1. Update the version number in `version.rb`.
+1. Commit.
+1. `git tag -a v$VERSION -m 'New version' && git push origin v$VERSION`
+1. Build and release:
+
+        gem install geminabox
+        gem build orchparty.gemspec
+        gem inabox orchparty-<version>.gem --host "https://api_key:$API_KEY@gemserver.metoda.com"
 
 ## Contributing
 
