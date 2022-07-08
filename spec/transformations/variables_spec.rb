@@ -1,5 +1,5 @@
 require "spec_helper"
-
+require 'byebug'
 describe Orchparty::Transformations::Variable do
   subject(:ast) { Orchparty::DSLParser.new("spec/input/variable_example.rb").parse }
 
@@ -7,11 +7,12 @@ describe Orchparty::Transformations::Variable do
 
     subject(:transformed_ast) { Orchparty::Transformations::Variable.new.transform(ast) }
 
-    let(:first_application) { transformed_ast.applications["web-example"]  }
+    let(:first_application) { transformed_ast.applications["web-example"] }
 
     describe "services" do
       let(:first_service) { first_application.services["web"] }
       let(:second_service) { first_application.services["db"] }
+      let(:third_service) { first_application.services["lb"] }
 
       it { expect(second_service.command).to eq("ruby db") }
       it { expect(second_service.labels[:"com.example.db"]).to eq("postgres:latest label") }
@@ -23,19 +24,21 @@ describe Orchparty::Transformations::Variable do
       it { expect(second_service.labels[:"service_var"]).to eq("service") }
       it { expect(second_service.extra_hosts.first).to eq("extra_host") }
 
+      it { expect(third_service.image).to eq("project:tag") }
+      it { expect(third_service.lb_config).to eq({ 'fqdns': ["domain.com"], port: 2003, tags: ["star_metoda"] }) }
+
     end
 
     describe "force_variable_definition" do
       subject(:transformed_ast) { Orchparty::Transformations::Variable.new(force_variable_definition: true).transform(ast) }
 
-      it { expect{ transformed_ast }.to raise_error("missing_variable not declared for web-example.web") }
+      it { expect { transformed_ast }.to raise_error("missing_variable not declared for web-example.web") }
     end
 
     describe "variables-block-allowed-to-be-missing" do
       subject(:ast) { Orchparty::DSLParser.new("spec/input/variables_block_allowed_to_be_missing.rb").parse }
 
-
-      let(:first_application) { transformed_ast.applications["test"]  }
+      let(:first_application) { transformed_ast.applications["test"] }
 
       describe "services" do
 
@@ -45,6 +48,5 @@ describe Orchparty::Transformations::Variable do
 
       end
     end
-
   end
 end
