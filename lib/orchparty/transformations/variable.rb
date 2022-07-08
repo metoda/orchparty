@@ -8,24 +8,27 @@ module Orchparty
 
       def transform(ast)
         ast.applications.each do |_, application|
+          ctx = build_context(application: application)
           application.services = application.services.each do |_, service|
-            resolve(application, service, service)
+            resolve(ctx, service)
           end
           application.volumes = application.volumes.each do |_, volume|
-            resolve(application, volume, nil) if volume
+            resolve(ctx, volume) if volume
           end
         end
         ast
       end
 
-      def resolve(application, subject, service)
+      def resolve(ctx, subject)
         subject.deep_transform_values! do |v|
           if v.respond_to?(:call)
-            eval_value(build_context(application: application, service: service), v) 
+            ctx = merge_service(ctx, subject)
+            eval_value(ctx, v)
           elsif v.is_a? Array
             v.map do |v|
               if v.respond_to?(:call)
-                eval_value(build_context(application: application, service: service), v) 
+                ctx = merge_service(ctx, subject)
+                eval_value(ctx, v)
               else
                 v
               end
@@ -40,13 +43,17 @@ module Orchparty
         context.instance_exec(&value)
       end
 
-      def build_context(application:, service:)
+      def merge_service(ctx, service)
+        return ctx if service._variables.nil?
+
+        ctx.merge!(service._variables)
+        ctx.merge!({ service: service.merge(service._variables) })
+      end
+
+      def build_context(application:)
         variables = application._variables || {}
-        variables = variables.merge({application: application.merge(application._variables)})
-        if service
-          variables = variables.merge(service._variables)
-          variables = variables.merge({service: service.merge(service._variables)})
-        end
+        variables = variables.merge({ application: application.merge(application._variables) })
+
         context = Context.new(variables)
         context._force_variable_definition = @force_variable_definition
         context
