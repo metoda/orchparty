@@ -1,4 +1,3 @@
-require 'byebug'
 application "web-example" do
   variables do
     var app_var: "app"
@@ -52,5 +51,4 @@ application "web-example" do
     end
     lb_config -> { lb_config }
   end
-
 end

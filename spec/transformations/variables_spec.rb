@@ -1,5 +1,5 @@
 require "spec_helper"
-require 'byebug'
+
 describe Orchparty::Transformations::Variable do
   subject(:ast) { Orchparty::DSLParser.new("spec/input/variable_example.rb").parse }
 
