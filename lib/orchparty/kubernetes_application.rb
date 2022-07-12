@@ -15,7 +15,7 @@ module Orchparty
       attr_accessor :dir_path
       attr_accessor :app_config
 
-      def initialize(cluster_name: , namespace:, file_path: , app_config:)
+      def initialize(cluster_name:, namespace:, file_path:, app_config:)
         self.cluster_name = cluster_name
         self.namespace = namespace
         self.dir_path = file_path
@@ -25,7 +25,7 @@ module Orchparty
       def template(file_path, helm, flag: "-f ", fix_file_path: nil)
         return "" unless file_path
         file_path = File.join(self.dir_path, file_path)
-        if(file_path.end_with?(".erb"))
+        if file_path.end_with?(".erb")
           helm.application = OpenStruct.new(cluster_name: cluster_name, namespace: namespace)
           template = Erubis::Eruby.new(File.read(file_path))
           template.filename = file_path
@@ -127,11 +127,11 @@ module Orchparty
         secret[:from_file]
       end
 
-      def upgrade_cmd(secret, fix_file_path=nil)
+      def upgrade_cmd(secret, fix_file_path = nil)
         "kubectl --namespace #{namespace} --context #{cluster_name} create secret generic --dry-run -o yaml #{secret[:name]}  #{template(value_path(secret), secret, flag: "--from-file=", fix_file_path: fix_file_path)} | kubectl --context #{cluster_name} apply -f -"
       end
 
-      def install_cmd(secret, fix_file_path=nil)
+      def install_cmd(secret, fix_file_path = nil)
         create_namespace_cmd + "&& kubectl --namespace #{namespace} --context #{cluster_name} create secret generic --dry-run -o yaml #{secret[:name]}  #{template(value_path(secret), secret, flag: "--from-file=", fix_file_path: fix_file_path)} | kubectl --context #{cluster_name} apply -f -"
       end
     end
@@ -188,14 +188,17 @@ module Orchparty
       end
 
       def build_chart(chart)
-        params = chart._services.map {|s| app_config.services[s.to_sym] }.map{|s| [s.name, s]}.to_h
+        params = chart._services.each.with_object({}) do |service, params|
+          s = app_config.services[service.to_sym]
+          params[s.name] = s
+        end
         Dir.mktmpdir do |dir|
           run(templates_path: File.expand_path(chart.template, self.dir_path), params: params, output_chart_path: dir, chart: chart)
           yield dir
         end
       end
 
-      def run(templates_path:, params:, output_chart_path:, chart: )
+      def run(templates_path:, params:, output_chart_path:, chart:)
         system("mkdir -p #{output_chart_path}")
         system("mkdir -p #{File.join(output_chart_path, 'templates')}")
 
@@ -241,7 +244,7 @@ module Orchparty
         end
       end
 
-      def generate_chart_yaml(templates_path:, output_chart_path:, chart_name: )
+      def generate_chart_yaml(templates_path:, output_chart_path:, chart_name:)
         template_path = File.join(templates_path, 'Chart.yaml.erb')
         output_path = File.join(output_chart_path, 'Chart.yaml')
 
@@ -322,25 +325,13 @@ class KubernetesApplication
     end
   end
 
-  def combine_charts(app_config)
-    services = app_config._service_order.map(&:to_s)
-    app_config._service_order.each do |name|
-      current_service = app_config[:services][name]
-      if current_service._type == "chart"
-        current_service._services.each do |n|
-          services.delete n.to_s
-        end
-      end
-    end
-    services
-  end
 
   def each_service
-    services = combine_charts(app_config)
-    services.each do |name|
-      config = app_config[:services][name]
-      service = "::Orchparty::Services::#{config._type.classify}".constantize.new(cluster_name: cluster_name, namespace: namespace, file_path: file_path, app_config: app_config)
-      yield(service, config)
+    app_config.services.values.each do |config|
+      if config._type == 'chart'
+        service = "::Orchparty::Services::#{config._type.classify}".constantize.new(cluster_name: cluster_name, namespace: namespace, file_path: file_path, app_config: app_config)
+        yield(service, config)
+      end
     end
   end
 end
