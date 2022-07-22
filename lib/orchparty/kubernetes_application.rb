@@ -64,6 +64,7 @@ module Orchparty
 
       def run_command(command)
         puts "Executing command: #{command}"
+        byebug
         stdout_and_stderr_str, status = Open3.capture2e(command)
         unless status.success?
           # Print inverted (7) red (31) on default (49).
@@ -254,7 +255,7 @@ module Orchparty
 
       def print_install(chart)
         build_chart(chart) do |chart_path|
-          puts `helm template --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}`
+          run_command("helm template --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}")
         end
       end
 
