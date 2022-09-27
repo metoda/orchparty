@@ -258,6 +258,9 @@ module Orchparty
           stdout_str, stderr_str, status = Open3.capture3(command)
 
           if status.success?
+            puts "---"
+            puts install_cmd(chart, 'tmp.yaml')
+            puts upgrade_cmd(chart, 'tmp.yaml')
             puts stdout_str
           else
             puts "ERROR when building chart: #{chart.name}"
@@ -288,14 +291,22 @@ module Orchparty
 
       def install(chart)
         build_chart(chart) do |chart_path|
-          run_command("helm install --create-namespace --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}")
+          run_command(install_cmd(chart, chart_path))
         end
       end
 
       def upgrade(chart)
         build_chart(chart) do |chart_path|
-          run_command("helm upgrade --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}")
+          run_command(upgrade_cmd(chart, chart_path))
         end
+      end
+
+      def install_cmd(chart, chart_path)
+        "helm install --create-namespace --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}"
+      end
+
+      def upgrade_cmd(chart, chart_path)
+        "helm upgrade --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}"
       end
     end
   end
@@ -340,9 +351,9 @@ class KubernetesApplication
     end
   end
 
-  def print(method)
+  def print_install
     each_service do |service, config|
-      service.send("print_#{method}".to_sym, config)
+      service.print_install(config)
     end
   end
 
