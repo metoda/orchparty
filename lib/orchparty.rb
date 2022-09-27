@@ -47,6 +47,7 @@ module Orchparty
     app.upgrade
   end
 
+  # NOTE: we no longer make a difference between install and upgrade. We always print the same thing in both cases.
   def self.print(cluster_name:, application_name:, force_variable_definition:, file_name:, namespace:, method:)
     app_config = Transformations.transform_kubernetes(Orchparty::Kubernetes::DSLParser.new(file_name).parse, force_variable_definition: force_variable_definition).applications[application_name]
     namespace = namespace || application_name
