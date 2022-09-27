@@ -258,6 +258,9 @@ module Orchparty
           stdout_str, stderr_str, status = Open3.capture3(command)
 
           if status.success?
+            puts "---"
+            puts install_cmd(chart, 'tmp.yaml')
+            puts upgrade_cmd(chart, 'tmp.yaml')
             puts stdout_str
           else
             puts "ERROR when building chart: #{chart.name}"
