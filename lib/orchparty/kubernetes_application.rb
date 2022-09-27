@@ -66,7 +66,7 @@ module Orchparty
         puts "Executing command: #{command}"
         stdout_and_stderr_str, status = Open3.capture2e(command)
         unless status.success?
-          # Print inverted (7) red (31) on default (49).
+          # Codes <7, 31, 49> mean print <inverted, red, on default>.
           puts format("\033[%d;%d;%dm%s\033[0m", 7, 31, 49, 'The command failed!')
         end
         puts stdout_and_stderr_str
@@ -254,10 +254,31 @@ module Orchparty
 
       def print_install(chart)
         build_chart(chart) do |chart_path|
-          puts "---"
-          puts install_cmd(chart, 'tmp.yaml')
-          puts upgrade_cmd(chart, 'tmp.yaml')
-          puts `helm template --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}`
+          command = "helm template --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}"
+          stdout_str, stderr_str, status = Open3.capture3(command)
+
+          if status.success?
+            puts stdout_str
+          else
+            puts "ERROR when building chart: #{chart.name}"
+            puts "Command was: #{command}"
+            puts stdout_str
+            puts stderr_str
+
+            if stderr_str =~ /YAML parse error on ([^:]+):/
+              file_path = $1
+              # For some reason the path contains the chart name in the first position, we have to remove that
+              file_path.gsub!("#{chart.name}/", '')
+              # This is the absolute path:
+              file_path = File.join(chart_path, file_path)
+              puts "\nContent of #{file_path}:"
+              count = 0
+              File.readlines(file_path).each do |line|
+                puts format('%3d: %s', count, line) # We prefix the line to make it more visible in the diff that is done on it at a later stage
+                count += 1
+              end
+            end
+          end
         end
       end
 
