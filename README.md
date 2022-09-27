@@ -463,12 +463,13 @@ To release a new version:
 
 1. Update the version number in `version.rb`.
 1. Commit.
+1. `export VERSION=<the-version-number>`
 1. `git tag -a v$VERSION -m 'New version' && git push origin v$VERSION`
 1. Build and release:
 
         gem install geminabox
         gem build orchparty.gemspec
-        gem inabox orchparty-<version>.gem --host "https://api_key:$API_KEY@gemserver.metoda.com"
+        gem inabox orchparty-$VERSION.gem --host "https://api_key:$API_KEY@gemserver.metoda.com"
 
 ## Contributing
 
