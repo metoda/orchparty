@@ -19,8 +19,17 @@ class OrchPartyApp
     com.flag [:namespace, :n], required: false, desc: 'Namespace where to install the application'
     com.switch :"force-variable-definition", :default_value => false, :desc => "Raises an Error if the input contains a not defined variable"
     com.flag [:method,:m], required: true, :desc => 'method to print upgrade/install'
+    com.flag [:output, :o], required: true, :desc => 'path to output file'
     com.action do |_, args|
-      Orchparty.print(cluster_name: args[:c], application_name: args[:a], force_variable_definition: args["force-variable-definition"], file_name: args[:f], namespace: args[:n], method: args[:m])
+      Orchparty.print(
+        cluster_name: args[:c],
+        application_name: args[:a],
+        force_variable_definition: args["force-variable-definition"],
+        file_name: args[:f],
+        namespace: args[:n],
+        method: args[:m],
+        output: args[:o],
+      )
     end
   end
 

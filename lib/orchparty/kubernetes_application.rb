@@ -38,18 +38,18 @@ module Orchparty
         "#{flag}#{fix_file_path || file_path}"
       end
 
-      def print_install(helm)
-        puts "---"
-        puts install_cmd(helm, value_path(helm))
-        puts upgrade_cmd(helm, value_path(helm))
-        puts "---"
-        puts File.read(template(value_path(helm), helm, flag: "")) if value_path(helm)
+      def print_install(helm, file)
+        file.puts "---"
+        file.puts install_cmd(helm, value_path(helm))
+        file.puts upgrade_cmd(helm, value_path(helm))
+        file.puts "---"
+        file.puts File.read(template(value_path(helm), helm, flag: "")) if value_path(helm)
       end
 
       # On 05.02.2021 we have decided that it would be best to print both commands.
       # This way it would be possible to debug both upgrade and install and also people would not see git diffs all the time.
-      def print_upgrade(helm)
-        print_install(helm)
+      def print_upgrade(helm, file)
+        print_install(helm, file)
       end
 
       def upgrade(helm)
@@ -137,14 +137,14 @@ module Orchparty
     end
 
     class Label < Context
-      def print_install(label)
-        puts "---"
-        puts install_cmd(label)
+      def print_install(label, file)
+        file.puts "---"
+        file.puts install_cmd(label)
       end
 
-      def print_upgrade(label)
-        puts "---"
-        puts upgrade_cmd(label)
+      def print_upgrade(label, file)
+        file.puts "---"
+        file.puts upgrade_cmd(label)
       end
 
       def upgrade_cmd(label)
@@ -157,14 +157,14 @@ module Orchparty
     end
 
     class Wait < Context
-      def print_install(wait)
-        puts "---"
-        puts wait.cmd
+      def print_install(wait, file)
+        file.puts "---"
+        file.puts wait.cmd
       end
 
-      def print_upgrade(wait)
-        puts "---"
-        puts wait.cmd
+      def print_upgrade(wait, file)
+        file.puts "---"
+        file.puts wait.cmd
       end
 
       def upgrade(wait)
@@ -252,21 +252,21 @@ module Orchparty
         File.write(output_path, document)
       end
 
-      def print_install(chart)
+      def print_install(chart, file)
         build_chart(chart) do |chart_path|
           command = "helm template --namespace #{namespace} --kube-context #{cluster_name} #{chart.name} #{chart_path}"
           stdout_str, stderr_str, status = Open3.capture3(command)
 
           if status.success?
-            puts "---"
-            puts install_cmd(chart, 'tmp.yaml')
-            puts upgrade_cmd(chart, 'tmp.yaml')
-            puts stdout_str
+            file.puts "---"
+            file.puts install_cmd(chart, 'tmp.yaml')
+            file.puts upgrade_cmd(chart, 'tmp.yaml')
+            file.puts stdout_str
           else
             puts "ERROR when building chart: #{chart.name}"
             puts "Command was: #{command}"
-            puts stdout_str
-            puts stderr_str
+            puts "Command stdout:\n#{stdout_str}"
+            puts "Command stderr:\n#{stderr_str}"
 
             if stderr_str =~ /YAML parse error on ([^:]+):/
               file_path = $1
@@ -274,19 +274,18 @@ module Orchparty
               file_path.gsub!("#{chart.name}/", '')
               # This is the absolute path:
               file_path = File.join(chart_path, file_path)
-              puts "\nContent of #{file_path}:"
-              count = 0
-              File.readlines(file_path).each do |line|
-                puts format('%3d: %s', count, line) # We prefix the line to make it more visible in the diff that is done on it at a later stage
-                count += 1
-              end
+
+              FileUtils.cp(file_path, 'minfra_cli_yaml_with_error.yaml')
+              puts "❗️❗️❗️ We saved a copy of the problematic yaml file at 'minfra_cli_yaml_with_error.yaml'"
             end
+
+            exit 1
           end
         end
       end
 
-      def print_upgrade(chart)
-        print_install(chart)
+      def print_upgrade(chart, file)
+        print_install(chart, file)
       end
 
       def install(chart)
@@ -351,9 +350,9 @@ class KubernetesApplication
     end
   end
 
-  def print_install
+  def print_install(file)
     each_service do |service, config|
-      service.print_install(config)
+      service.print_install(config, file)
     end
   end
 
